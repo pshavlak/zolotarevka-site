@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Вход — Админ-панель</title>
+  <link rel="stylesheet" href="/static/css/admin.css">
+  <style>
+    .login-layout {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: var(--sidebar-bg);
+      padding: 20px;
+    }
+    .login-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      width: 380px;
+      max-width: 100%;
+      padding: 40px 32px;
+    }
+    .login-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .login-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .login-header p {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    .login-error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: var(--danger);
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+    .login-form .form-group {
+      margin-bottom: 20px;
+    }
+    .login-form .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .login-form .form-input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--text);
+      background: #fff;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      outline: none;
+    }
+    .login-form .form-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+    .login-form .btn-primary {
+      width: 100%;
+      padding: 10px 16px;
+      justify-content: center;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-layout">
+    <div class="login-card">
+      <div class="login-header">
+        <h1>🔐 Золотаревка</h1>
+        <p>Войдите в панель управления</p>
+      </div>
+
+      {% if error %}
+      <div class="login-error">{{ error }}</div>
+      {% endif %}
+
+      <form class="login-form" method="POST" action="/admin/login">
+        <div class="form-group">
+          <label class="form-label" for="username">Имя пользователя</label>
+          <input class="form-input" type="text" id="username" name="username"
+                 placeholder="admin" autocomplete="username" required autofocus>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password">Пароль</label>
+          <input class="form-input" type="password" id="password" name="password"
+                 placeholder="••••••••" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Войти</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

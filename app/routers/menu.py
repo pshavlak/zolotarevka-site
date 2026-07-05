@@ -22,13 +22,15 @@ from app.services import (
     reorder_menu_items,
     update_menu_item,
 )
+from app.services.auth import require_admin_api
 
 router = APIRouter(prefix="/menu", tags=["menu"])
 
 
 # ── POST /menu/items ──────────────────────────────────────────────────────
 
-@router.post("/items", response_model=MenuItemResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/items", response_model=MenuItemResponse, status_code=status.HTTP_201_CREATED,
+             dependencies=[Depends(require_admin_api)])
 def api_create_item(body: MenuItemCreate, db: Session = Depends(get_db)):
     """Create a new menu item."""
     return create_menu_item(db, body)
@@ -36,7 +38,7 @@ def api_create_item(body: MenuItemCreate, db: Session = Depends(get_db)):
 
 # ── GET /menu/items ───────────────────────────────────────────────────────
 
-@router.get("/items", response_model=List[MenuItemResponse])
+@router.get("/items", response_model=List[MenuItemResponse], dependencies=[Depends(require_admin_api)])
 def api_list_items(db: Session = Depends(get_db)):
     """Return all menu items as a flat list."""
     return get_menu_items(db)
@@ -44,7 +46,7 @@ def api_list_items(db: Session = Depends(get_db)):
 
 # ── GET /menu/items/{item_id} ─────────────────────────────────────────────
 
-@router.get("/items/{item_id}", response_model=MenuItemResponse)
+@router.get("/items/{item_id}", response_model=MenuItemResponse, dependencies=[Depends(require_admin_api)])
 def api_get_item(item_id: int, db: Session = Depends(get_db)):
     """Return a single menu item by id."""
     item = get_menu_item(db, item_id)
@@ -58,7 +60,7 @@ def api_get_item(item_id: int, db: Session = Depends(get_db)):
 
 # ── PUT /menu/items/{item_id} ─────────────────────────────────────────────
 
-@router.put("/items/{item_id}", response_model=MenuItemResponse)
+@router.put("/items/{item_id}", response_model=MenuItemResponse, dependencies=[Depends(require_admin_api)])
 def api_update_item(item_id: int, body: MenuItemUpdate, db: Session = Depends(get_db)):
     """Update an existing menu item (partial update)."""
     item = update_menu_item(db, item_id, body)
@@ -72,7 +74,8 @@ def api_update_item(item_id: int, body: MenuItemUpdate, db: Session = Depends(ge
 
 # ── DELETE /menu/items/{item_id} ──────────────────────────────────────────
 
-@router.delete("/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT,
+               dependencies=[Depends(require_admin_api)])
 def api_delete_item(item_id: int, db: Session = Depends(get_db)):
     """Delete a menu item (cascades to children via DB)."""
     if not delete_menu_item(db, item_id):
@@ -84,14 +87,14 @@ def api_delete_item(item_id: int, db: Session = Depends(get_db)):
 
 # ── PUT /menu/reorder ─────────────────────────────────────────────────────
 
-@router.put("/reorder", response_model=List[MenuItemResponse])
+@router.put("/reorder", response_model=List[MenuItemResponse], dependencies=[Depends(require_admin_api)])
 def api_reorder(body: List[ReorderItem], db: Session = Depends(get_db)):
     """Batch-update order and/or parent_id for multiple items."""
     return reorder_menu_items(db, body)
 
 
 # ── GET /menu (public) ─────────────────────────────────────────────────────
-# Returns the active-only tree — the public site menu.
+# Returns the active-only tree — the public site menu. NO auth required.
 
 @router.get("", response_model=List[MenuItemTreeNode])
 def api_public_menu(
@@ -103,7 +106,7 @@ def api_public_menu(
 
 # ── GET /menu/tree ────────────────────────────────────────────────────────
 
-@router.get("/tree", response_model=List[MenuItemTreeNode])
+@router.get("/tree", response_model=List[MenuItemTreeNode], dependencies=[Depends(require_admin_api)])
 def api_get_tree(
     active_only: bool = Query(False),
     db: Session = Depends(get_db),

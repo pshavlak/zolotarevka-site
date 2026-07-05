@@ -8,6 +8,14 @@ from .menu import (
     reorder_menu_items,
     update_menu_item,
 )
+from .page import (
+    create_page,
+    delete_page,
+    get_page,
+    get_pages,
+    reorder_pages,
+    update_page,
+)
 
 __all__ = [
     "create_menu_item",
@@ -18,4 +26,10 @@ __all__ = [
     "get_menu_tree",
     "reorder_menu_items",
     "update_menu_item",
+    "create_page",
+    "delete_page",
+    "get_page",
+    "get_pages",
+    "reorder_pages",
+    "update_page",
 ]

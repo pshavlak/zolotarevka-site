@@ -1,16 +1,26 @@
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy import select
 
 from app.database import Base, engine
-from app.models import MenuItem
-from app.routers import menu, public
+from app.models import MenuItem, Page, MediaItem, Setting, Suggestion  # noqa: F401 — register models with Base
+from app.routers import auth, menu, page, public, admin_tools
+from app.services.auth import is_authenticated
 
 app = FastAPI(title="Золотаревка-сайт", version="0.1.0")
+
+# ── Session middleware (for admin auth) ──────────────────────────────────
+_SESSION_SECRET = os.environ.get(
+    "SESSION_SECRET",
+    "change-me-in-production-use-a-long-random-string",
+)
+app.add_middleware(SessionMiddleware, secret_key=_SESSION_SECRET)
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -66,6 +76,8 @@ def _tree_to_dicts(nodes) -> list[dict]:
 @app.get("/admin", response_class=HTMLResponse, include_in_schema=False)
 @app.get("/admin/", response_class=HTMLResponse, include_in_schema=False)
 def admin_index(request: Request):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login?next=/admin", status_code=302)
     return templates.TemplateResponse(
         request=request, name="admin/menu.html"
     )
@@ -73,13 +85,18 @@ def admin_index(request: Request):
 
 @app.get("/admin/menu", response_class=HTMLResponse, include_in_schema=False)
 def admin_menu_page(request: Request):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login?next=/admin/menu", status_code=302)
     return templates.TemplateResponse(
         request=request, name="admin/menu.html"
     )
 
 
+app.include_router(auth.router)
 app.include_router(menu.router, prefix="/api")
+app.include_router(page.router, prefix="/api")
 app.include_router(public.router)
+app.include_router(admin_tools.router)
 
 
 # ── Public page routes (Jinja2) ──────────────────────────────────────────
@@ -94,7 +111,7 @@ def web_index(request: Request):
 
 @app.get("/{slug:path}", response_class=HTMLResponse, include_in_schema=False)
 def web_page(slug: str, request: Request):
-    # Skip internal paths — only match if slug is longer than just \"admin\"
+    # Skip internal paths
     if slug.startswith("api/") or slug.startswith("static") or slug in ("admin/",):
         from fastapi.responses import JSONResponse
         return JSONResponse({"error": "Not found"}, status_code=404)
@@ -108,3 +125,14 @@ def web_page(slug: str, request: Request):
             "slug": slug,
         },
     )
+
+
+# ── Catch-all for non-GET methods on unknown paths ───────────────────────
+# Without this, POST/PUT/DELETE to e.g. /login returns 405 (from the
+# catch-all GET route matching the path pattern). We want 404 instead.
+from fastapi.responses import JSONResponse as _JsonResponse
+
+
+@app.api_route("/{path:path}", methods=["POST", "PUT", "DELETE", "PATCH"], include_in_schema=False)
+def method_not_allowed_fallback(path: str, request: Request):
+    return _JsonResponse({"error": "Not found"}, status_code=404)

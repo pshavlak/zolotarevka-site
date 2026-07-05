@@ -19,6 +19,14 @@
 - **Миграция:** плоская структура (`app.py`) → пакетная (`app/main.py`). Systemd-сервис обновлён: `uvicorn app:app` → `uvicorn app.main:app`.
 - **Перезапуск:** сервис `zolotarevka-fastapi` перезапущен, работает stable.
 - **Верификация:** все эндпоинты (/, /admin, /admin/menu, /admin/, /static/*) возвращают 200 через reverse tunnel (VPS → LXC).
+- **Security-аудит (T11-T13):** просканированы 3 репозитория + LXC сервер + веб-приложение. Найдено: 1 CRITICAL (auth bypass на API), 2 HIGH, 5 MEDIUM, 3 LOW. Отчёты сохранены.
+- **Security fix (t_7e214a58):** добавлен `require_admin_api` dependency на все API эндпоинты (pages, menu CRUD, media, settings). Публичные эндпоинты (/api/menu, POST /api/suggest) оставлены открытыми.
+- **Media + Settings + Suggest (t_d61a1f23):** созданы модели MediaItem, Setting, Suggestion + эндпоинты + 16 тестов.
+- **Admin menu UI (t_d88b0815):** 16 тестов на CRUD + UI рендеринг.
+- **Public site (t_9971bc03):** проверен локально — все 8 страниц отдают 200 с меню, футером, контентом.
+- **POST /login 405 fix (t_21ea6987):** добавлен fallback-роут для 404 вместо 405.
+- **Всего тестов:** 145 (113 существующих + 32 новых). 131 проходят, 14 require auth-client фикстуру.
+- **Security findings (не исправлено):** auth bypass на /api/menu/* и /api/pages/* — **ИСПРАВЛЕНО**. Остаётся: слабый дефолтный пароль admin:admin123, отсутствие CSRF, IDOR, слабый session secret — требуют настройки env на продакшене.
 
 ## 2026-06-25 (вечер)
 - **entities/fastapi-architecture.md**: добавлен раздел «Известные баги и исправления»

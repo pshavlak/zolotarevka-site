@@ -1,18 +1,18 @@
 """Test fixtures for menu CRUD tests."""
 
 from collections.abc import Generator
+import os
+import tempfile
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
+from starlette.middleware.sessions import SessionMiddleware
 
 from app.database import Base, get_db
-from app.models import MenuItem  # noqa: F401 — register model with Base
-
-import os
-import tempfile
+from app.models import MenuItem, Page  # noqa: F401 — register models with Base
 
 # Use a temp file so TestClient's thread sees the same database
 # (in-memory SQLite is per-connection, so each TestClient request
@@ -57,14 +57,67 @@ def _override_get_db() -> Generator[Session, None, None]:
         db.close()
 
 
-@pytest.fixture
-def client(setup_db: None) -> Generator[TestClient, None, None]:
-    """Provide a sync TestClient with an isolated file-based database."""
-    from app.routers.menu import router as menu_router
+def _make_test_app(router, prefix: str = "") -> FastAPI:
+    """Create a test app that includes auth routes, session, and DB override."""
+    from app.routers.auth import router as auth_router
 
     app = FastAPI()
-    app.include_router(menu_router, prefix="/api")
+    app.add_middleware(SessionMiddleware, secret_key="test-secret-test-secret")
+    app.include_router(auth_router)
+    app.include_router(router, prefix=prefix)
     app.dependency_overrides[get_db] = _override_get_db
+    return app
 
+
+def _authenticate(client: TestClient) -> None:
+    """Authenticate the test client by posting to /admin/login."""
+    r = client.post(
+        "/admin/login",
+        data={"username": "admin", "password": "admin123"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 302, f"Auth failed: {r.status_code}"
+    for key, value in r.cookies.items():
+        client.cookies.set(key, value)
+
+
+@pytest.fixture
+def client(setup_db: None) -> Generator[TestClient, None, None]:
+    """Provide an authenticated TestClient with menu router + isolated DB."""
+    from app.routers.menu import router as menu_router
+
+    app = _make_test_app(menu_router, prefix="/api")
+    with TestClient(app) as c:
+        _authenticate(c)
+        yield c
+
+
+@pytest.fixture
+def anon_client(setup_db: None) -> Generator[TestClient, None, None]:
+    """Provide an unauthenticated TestClient with menu router."""
+    from app.routers.menu import router as menu_router
+
+    app = _make_test_app(menu_router, prefix="/api")
+    with TestClient(app) as c:
+        yield c
+
+
+@pytest.fixture
+def page_client(setup_db: None) -> Generator[TestClient, None, None]:
+    """Provide an authenticated TestClient with page router + isolated DB."""
+    from app.routers.page import router as page_router
+
+    app = _make_test_app(page_router, prefix="/api")
+    with TestClient(app) as c:
+        _authenticate(c)
+        yield c
+
+
+@pytest.fixture
+def anon_page_client(setup_db: None) -> Generator[TestClient, None, None]:
+    """Provide an unauthenticated TestClient with page router."""
+    from app.routers.page import router as page_router
+
+    app = _make_test_app(page_router, prefix="/api")
     with TestClient(app) as c:
         yield c
