@@ -63,6 +63,14 @@ def _tree_to_dicts(nodes) -> list[dict]:
 
 
 # ── Admin routes ─────────────────────────────────────────────────────────
+@app.get("/admin", response_class=HTMLResponse, include_in_schema=False)
+@app.get("/admin/", response_class=HTMLResponse, include_in_schema=False)
+def admin_index(request: Request):
+    return templates.TemplateResponse(
+        request=request, name="admin/menu.html"
+    )
+
+
 @app.get("/admin/menu", response_class=HTMLResponse, include_in_schema=False)
 def admin_menu_page(request: Request):
     return templates.TemplateResponse(
@@ -86,8 +94,8 @@ def web_index(request: Request):
 
 @app.get("/{slug:path}", response_class=HTMLResponse, include_in_schema=False)
 def web_page(slug: str, request: Request):
-    # Skip internal paths
-    if slug.startswith("api/") or slug.startswith("admin") or slug.startswith("static"):
+    # Skip internal paths — only match if slug is longer than just \"admin\"
+    if slug.startswith("api/") or slug.startswith("static") or slug in ("admin/",):
         from fastapi.responses import JSONResponse
         return JSONResponse({"error": "Not found"}, status_code=404)
 
