@@ -24,6 +24,7 @@ from app.services.media import (
     get_settings,
     get_setting,
     upsert_setting,
+    delete_setting,
     get_suggestions,
     create_suggestion,
     mark_suggestion_read,
@@ -97,6 +98,13 @@ def api_get_setting(key: str, db: Session = Depends(get_db)):
 def api_upsert_setting(key: str, body: SettingUpdate, db: Session = Depends(get_db)):
     """Create or update a setting."""
     return upsert_setting(db, key, body.value)
+
+
+@router.delete("/settings/{key}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin_api)])
+def api_delete_setting(key: str, db: Session = Depends(get_db)):
+    """Delete a setting by key."""
+    if not delete_setting(db, key):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Setting '{key}' not found")
 
 
 # ── Suggestions endpoints (admin: list+mark, public: create) ──────────────

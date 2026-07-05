@@ -95,6 +95,16 @@ def upsert_setting(db: Session, key: str, value: str) -> Setting:
     return setting
 
 
+def delete_setting(db: Session, key: str) -> bool:
+    """Delete a setting by key. Returns True if deleted, False if not found."""
+    setting = get_setting(db, key)
+    if not setting:
+        return False
+    db.delete(setting)
+    db.commit()
+    return True
+
+
 # ── Suggestions ───────────────────────────────────────────────────────────
 
 def get_suggestions(db: Session) -> List[Suggestion]:

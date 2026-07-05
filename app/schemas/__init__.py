@@ -13,6 +13,12 @@ from .page import (
     PageUpdate,
     ReorderPage,
 )
+from .users import (
+    RoleCreate,
+    RoleResponse,
+    UserCreate,
+    UserResponse,
+)
 
 __all__ = [
     "MenuItemBase",
@@ -26,4 +32,8 @@ __all__ = [
     "PageResponse",
     "PageUpdate",
     "ReorderPage",
+    "RoleCreate",
+    "RoleResponse",
+    "UserCreate",
+    "UserResponse",
 ]

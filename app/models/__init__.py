@@ -1,3 +1,6 @@
+import hashlib
+import os
+
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -76,3 +79,34 @@ class Suggestion(Base):
     author_contact = Column(String(512), nullable=False, default="")
     is_read = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
+
+
+class Role(Base):
+    """Admin roles."""
+    __tablename__ = "roles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False, unique=True, index=True)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+
+    users = relationship("User", back_populates="role", cascade="all, delete")
+
+
+class User(Base):
+    """Admin users with role-based access."""
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(255), nullable=False, unique=True, index=True)
+    password_hash = Column(String(255), nullable=False)
+    role_id = Column(Integer, ForeignKey("roles.id"), nullable=False)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+
+    role = relationship("Role", back_populates="users")
+
+    @staticmethod
+    def hash_password(password: str) -> str:
+        return hashlib.sha256(password.encode()).hexdigest()
+
+    def verify_password(self, password: str) -> bool:
+        return self.password_hash == hashlib.sha256(password.encode()).hexdigest()

@@ -16,6 +16,18 @@ from .page import (
     reorder_pages,
     update_page,
 )
+from .users import (
+    create_role,
+    create_user,
+    delete_role,
+    delete_user,
+    get_role,
+    get_role_by_name,
+    get_roles,
+    get_user,
+    get_user_by_username,
+    get_users,
+)
 
 __all__ = [
     "create_menu_item",
@@ -32,4 +44,14 @@ __all__ = [
     "get_pages",
     "reorder_pages",
     "update_page",
+    "create_role",
+    "create_user",
+    "delete_role",
+    "delete_user",
+    "get_role",
+    "get_role_by_name",
+    "get_roles",
+    "get_user",
+    "get_user_by_username",
+    "get_users",
 ]
