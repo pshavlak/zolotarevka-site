@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Страницы сайта — Админ-панель</title>
+<link rel="stylesheet" href="/static/css/admin.css"></head>
+<body>
+<div class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="sidebar-header"><h1>Золотаревка</h1><span>Панель управления</span></div>
+    <nav class="sidebar-nav">
+      <a href="/admin/" class="nav-item active"><span class="icon">🗺️</span><span>Страницы сайта</span></a>
+      <a href="/admin/menu" class="nav-item"><span class="icon">📋</span><span>Меню</span></a>
+      <a href="/admin/media" class="nav-item"><span class="icon">🖼️</span><span>Медиа-центр</span></a>
+      <a href="/admin/content" class="nav-item"><span class="icon">📰</span><span>Контент</span></a>
+      <a href="/admin/settings-page" class="nav-item"><span class="icon">⚙️</span><span>Настройки</span></a>
+      <a href="/admin/roles-page" class="nav-item"><span class="icon">👥</span><span>Пользователи и роли</span></a>
+    </nav>
+    <div style="padding:12px 16px;border-top:1px solid rgba(255,255,255,0.06);">
+      <a href="/" class="nav-item" style="font-size:13px;" target="_blank"><span class="icon">↗️</span><span>Открыть сайт</span></a>
+    </div>
+  </aside>
+  <main class="admin-main">
+    <div class="page-header"><div><h2>🗺️ Страницы сайта</h2><div class="subtitle">Управление страницами и контентом</div></div></div>
+    <div class="card">
+      <div class="card-header"><h3>Все страницы</h3></div>
+      <div class="card-body" id="pages-list"><div class="loading-state"><p>⏳ Загрузка…</p></div></div>
+    </div>
+  </main>
+</div>
+<div class="toast-container" id="toast-container"></div>
+<script>
+async function loadPages() {
+  try {
+    const r = await fetch('/api/pages', {credentials:'include'});
+    if (!r.ok) { document.getElementById('pages-list').innerHTML = '<div class="empty-state"><div class="icon">🔒</div><h3>Требуется авторизация</h3></div>'; return; }
+    const pages = await r.json();
+    const el = document.getElementById('pages-list');
+    if (pages.length === 0) { el.innerHTML = '<div class="empty-state"><div class="icon">📄</div><h3>Нет страниц</h3></div>'; return; }
+    el.innerHTML = '<table style="width:100%;border-collapse:collapse;"><tr style="text-align:left;border-bottom:2px solid var(--border);"><th style="padding:8px 4px;">Название</th><th style="padding:8px 4px;">URL</th><th style="padding:8px 4px;">Статус</th></tr>' +
+      pages.map(p => '<tr style="border-bottom:1px solid var(--border);"><td style="padding:10px 4px;">' + p.title + '</td><td style="padding:10px 4px;color:var(--primary);">/' + p.slug + '</td><td style="padding:10px 4px;">' + (p.is_published ? '✅' : '⏸️') + '</td></tr>').join('') + '</table>';
+  } catch(e) { document.getElementById('pages-list').innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><h3>Ошибка</h3><p>' + e.message + '</p></div>'; }
+}
+loadPages();
+</script>
+</body></html>

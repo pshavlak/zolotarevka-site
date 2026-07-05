@@ -99,22 +99,42 @@ app.include_router(public.router)
 app.include_router(admin_tools.router)
 
 
-# ── Admin pages (sidebar targets) ─────────────────────────────────────────
-# Simple placeholder pages for admin sections that don't have full UIs yet.
+# ── Admin pages ───────────────────────────────────────────────────────────
+
+
+@app.get("/admin/", response_class=HTMLResponse, include_in_schema=False)
+def admin_dashboard(request: Request):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login?next=/", status_code=302)
+    return templates.TemplateResponse(request=request, name="admin/dashboard.html")
 
 
 @app.get("/admin/media", response_class=HTMLResponse, include_in_schema=False)
-@app.get("/admin/content", response_class=HTMLResponse, include_in_schema=False)
-@app.get("/admin/settings-page", response_class=HTMLResponse, include_in_schema=False)
-@app.get("/admin/roles-page", response_class=HTMLResponse, include_in_schema=False)
-def admin_placeholder(request: Request):
+def admin_media(request: Request):
     if not is_authenticated(request):
-        return RedirectResponse(url=f"/admin/login?next={request.url.path}", status_code=302)
-    return templates.TemplateResponse(
-        request=request,
-        name="admin/menu.html",
-        context={"page_title": "Админ-панель"},
-    )
+        return RedirectResponse(url="/admin/login?next=/media", status_code=302)
+    return templates.TemplateResponse(request=request, name="admin/media.html")
+
+
+@app.get("/admin/content", response_class=HTMLResponse, include_in_schema=False)
+def admin_content(request: Request):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login?next=/content", status_code=302)
+    return templates.TemplateResponse(request=request, name="admin/content.html")
+
+
+@app.get("/admin/settings-page", response_class=HTMLResponse, include_in_schema=False)
+def admin_settings(request: Request):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login?next=/settings", status_code=302)
+    return templates.TemplateResponse(request=request, name="admin/settings.html")
+
+
+@app.get("/admin/roles-page", response_class=HTMLResponse, include_in_schema=False)
+def admin_roles(request: Request):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login?next=/roles", status_code=302)
+    return templates.TemplateResponse(request=request, name="admin/roles.html")
 
 
 # ── Public page routes (Jinja2) ──────────────────────────────────────────
