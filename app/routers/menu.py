@@ -1,8 +1,8 @@
-"""FastAPI router for menu CRUD operations."""
+"""Admin API router for menu CRUD — uses the service layer."""
 
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -13,7 +13,7 @@ from app.schemas.menu import (
     MenuItemUpdate,
     ReorderItem,
 )
-from app.services.menu import (
+from app.services import (
     create_menu_item,
     delete_menu_item,
     get_menu_item,
@@ -26,43 +26,87 @@ from app.services.menu import (
 router = APIRouter(prefix="/menu", tags=["menu"])
 
 
-@router.post("/items", response_model=MenuItemResponse, status_code=status.HTTP_201_CREATED)
-def api_create_menu_item(data: MenuItemCreate, db: Session = Depends(get_db)):
-    return create_menu_item(db, data)
+# ── POST /menu/items ──────────────────────────────────────────────────────
 
+@router.post("/items", response_model=MenuItemResponse, status_code=status.HTTP_201_CREATED)
+def api_create_item(body: MenuItemCreate, db: Session = Depends(get_db)):
+    """Create a new menu item."""
+    return create_menu_item(db, body)
+
+
+# ── GET /menu/items ───────────────────────────────────────────────────────
 
 @router.get("/items", response_model=List[MenuItemResponse])
-def api_list_menu_items(db: Session = Depends(get_db)):
+def api_list_items(db: Session = Depends(get_db)):
+    """Return all menu items as a flat list."""
     return get_menu_items(db)
 
 
+# ── GET /menu/items/{item_id} ─────────────────────────────────────────────
+
 @router.get("/items/{item_id}", response_model=MenuItemResponse)
-def api_get_menu_item(item_id: int, db: Session = Depends(get_db)):
+def api_get_item(item_id: int, db: Session = Depends(get_db)):
+    """Return a single menu item by id."""
     item = get_menu_item(db, item_id)
-    if item is None:
-        raise HTTPException(status_code=404, detail="Menu item not found")
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"MenuItem {item_id} not found",
+        )
     return item
 
+
+# ── PUT /menu/items/{item_id} ─────────────────────────────────────────────
 
 @router.put("/items/{item_id}", response_model=MenuItemResponse)
-def api_update_menu_item(item_id: int, data: MenuItemUpdate, db: Session = Depends(get_db)):
-    item = update_menu_item(db, item_id, data)
-    if item is None:
-        raise HTTPException(status_code=404, detail="Menu item not found")
+def api_update_item(item_id: int, body: MenuItemUpdate, db: Session = Depends(get_db)):
+    """Update an existing menu item (partial update)."""
+    item = update_menu_item(db, item_id, body)
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"MenuItem {item_id} not found",
+        )
     return item
 
 
-@router.delete("/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-def api_delete_menu_item(item_id: int, db: Session = Depends(get_db)):
-    if not delete_menu_item(db, item_id):
-        raise HTTPException(status_code=404, detail="Menu item not found")
+# ── DELETE /menu/items/{item_id} ──────────────────────────────────────────
 
+@router.delete("/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+def api_delete_item(item_id: int, db: Session = Depends(get_db)):
+    """Delete a menu item (cascades to children via DB)."""
+    if not delete_menu_item(db, item_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"MenuItem {item_id} not found",
+        )
+
+
+# ── PUT /menu/reorder ─────────────────────────────────────────────────────
 
 @router.put("/reorder", response_model=List[MenuItemResponse])
-def api_reorder_menu_items(reorder_list: List[ReorderItem], db: Session = Depends(get_db)):
-    return reorder_menu_items(db, reorder_list)
+def api_reorder(body: List[ReorderItem], db: Session = Depends(get_db)):
+    """Batch-update order and/or parent_id for multiple items."""
+    return reorder_menu_items(db, body)
 
+
+# ── GET /menu (public) ─────────────────────────────────────────────────────
+# Returns the active-only tree — the public site menu.
+
+@router.get("", response_model=List[MenuItemTreeNode])
+def api_public_menu(
+    db: Session = Depends(get_db),
+):
+    """Return the public site menu (active items only, nested tree)."""
+    return get_menu_tree(db, active_only=True)
+
+
+# ── GET /menu/tree ────────────────────────────────────────────────────────
 
 @router.get("/tree", response_model=List[MenuItemTreeNode])
-def api_menu_tree(active_only: bool = False, db: Session = Depends(get_db)):
+def api_get_tree(
+    active_only: bool = Query(False),
+    db: Session = Depends(get_db),
+):
+    """Return the menu as a nested tree (optionally only active items)."""
     return get_menu_tree(db, active_only=active_only)

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header">
+    <div class="container page-header__inner">
+        <h1 class="page-header__title">{{ page_title }}</h1>
+    </div>
+</section>
+
+<div class="page-layout container">
+    <div class="page-layout__content page-layout__content--full">
+        <p>Содержимое страницы «{{ slug }}» будет добавлено.</p>
+    </div>
+</div>
+{% endblock %}

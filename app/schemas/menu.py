@@ -1,8 +1,10 @@
+"""Pydantic schemas for menu items."""
+
 from __future__ import annotations
 
-from typing import Optional
+from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 
 class MenuItemBase(BaseModel):
@@ -28,12 +30,14 @@ class MenuItemUpdate(BaseModel):
 
 
 class MenuItemResponse(MenuItemBase):
-    model_config = ConfigDict(from_attributes=True)
-
     id: int
+
+    class Config:
+        from_attributes = True
 
 
 class MenuItemTreeNode(MenuItemResponse):
+    """Menu item with children nested."""
     children: list[MenuItemTreeNode] = []
 
 

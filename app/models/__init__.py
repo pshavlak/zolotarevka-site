@@ -15,17 +15,16 @@ class MenuItem(Base):
     is_active = Column(Boolean, nullable=False, default=True)
     type = Column(String(50), nullable=False, default="page")
 
-    children = relationship(
-        "MenuItem",
-        back_populates="parent",
-        remote_side=[id],
-        order_by="MenuItem.order",
-        cascade="all, delete-orphan",
-    )
-
     parent = relationship(
         "MenuItem",
         back_populates="children",
-        remote_side=[parent_id],
+        remote_side=[id],
         uselist=False,
+    )
+
+    children = relationship(
+        "MenuItem",
+        back_populates="parent",
+        order_by="MenuItem.order",
+        cascade="all, delete",
     )

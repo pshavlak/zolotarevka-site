@@ -5,7 +5,7 @@
    API base: /admin/menu
    ─────────────────────────────────────────────────────────────────────── */
 
-const API_BASE = '/admin/menu';
+const API_BASE = '/api/menu';
 
 // ── State ──────────────────────────────────────────────────────────────────
 
@@ -114,7 +114,7 @@ function refreshTree() {
   treeEl.innerHTML = '';
   emptyState.style.display = 'none';
 
-  api('GET', '')
+  api('GET', '/tree')
     .then((data) => {
       menuItems = data;
       loadingState.style.display = 'none';
@@ -175,7 +175,7 @@ function handleSortEnd(evt) {
     });
   });
 
-  api('POST', '/reorder', { items: reorderItems })
+  api('PUT', '/reorder', reorderItems)
     .then(() => toast('Порядок сохранён'))
     .catch((err) => {
       toast(`Ошибка: ${err.message}`, 'error');
@@ -261,10 +261,10 @@ async function submitItemForm(e) {
 
   try {
     if (itemId) {
-      await api('PUT', `/${itemId}`, data);
+      await api('PUT', `/items/${itemId}`, data);
       toast('Пункт обновлён');
     } else {
-      await api('POST', '', data);
+      await api('POST', '/items', data);
       toast('Пункт добавлен');
     }
     closeItemForm();
@@ -335,7 +335,7 @@ function confirmDelete(id) {
 async function executeDelete() {
   if (!deleteTargetId) return;
   try {
-    await api('DELETE', `/${deleteTargetId}`);
+    await api('DELETE', `/items/${deleteTargetId}`);
     toast('Пункт удалён');
     closeModal(deleteModal);
     deleteTargetId = null;

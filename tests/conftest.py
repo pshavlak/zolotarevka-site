@@ -9,8 +9,20 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.database import Base, get_db
+from app.models import MenuItem  # noqa: F401 — register model with Base
 
-TEST_DATABASE_URL = "sqlite:///:memory:"
+import os
+import tempfile
+
+# Use a temp file so TestClient's thread sees the same database
+# (in-memory SQLite is per-connection, so each TestClient request
+# would get a separate blank DB without this).
+_db_file = os.path.join(tempfile.gettempdir(), "zolotarevka_test.db")
+# Ensure a clean start by removing any leftover from a prior run.
+if os.path.exists(_db_file):
+    os.remove(_db_file)
+
+TEST_DATABASE_URL = f"sqlite:///{_db_file}"
 
 engine = create_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -46,8 +58,8 @@ def _override_get_db() -> Generator[Session, None, None]:
 
 
 @pytest.fixture
-def client() -> Generator[TestClient, None, None]:
-    """Provide a sync TestClient with an isolated in-memory database."""
+def client(setup_db: None) -> Generator[TestClient, None, None]:
+    """Provide a sync TestClient with an isolated file-based database."""
     from app.routers.menu import router as menu_router
 
     app = FastAPI()

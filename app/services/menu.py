@@ -86,8 +86,14 @@ def _build_tree(
             continue
 
         node = MenuItemTreeNode(
+            id=item.id,
+            title=item.title,
+            url=item.url,
+            parent_id=item.parent_id,
+            order=item.order,
+            is_active=item.is_active,
+            type=item.type,
             children=_build_tree(items, item.id, active_only),
-            **{k: getattr(item, k) for k in MenuItemTreeNode.model_fields if k != "children"},
         )
         nodes.append(node)
     return nodes
