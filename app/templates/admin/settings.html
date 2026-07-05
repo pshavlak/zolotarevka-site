@@ -1,179 +1,33 @@
-<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Настройки — Админ-панель</title><link rel="stylesheet" href="/static/css/admin.css"></head><body><div class="admin-layout"><aside class="admin-sidebar"><div class="sidebar-header"><h1>Золотаревка</h1><span>Панель управления</span></div><nav class="sidebar-nav"><a href="/admin/" class="nav-item"><span class="icon">🗺️</span><span>Страницы сайта</span></a><a href="/admin/menu" class="nav-item"><span class="icon">📋</span><span>Меню</span></a><a href="/admin/media" class="nav-item"><span class="icon">🖼️</span><span>Медиа-центр</span></a><a href="/admin/content" class="nav-item"><span class="icon">📰</span><span>Контент</span></a><a href="/admin/settings-page" class="nav-item active"><span class="icon">⚙️</span><span>Настройки</span></a><a href="/admin/roles-page" class="nav-item"><span class="icon">👥</span><span>Пользователи и роли</span></a></nav><div style="padding:12px 16px;border-top:1px solid rgba(255,255,255,0.06);"><a href="/" class="nav-item" style="font-size:13px;" target="_blank"><span class="icon">↗️</span><span>Открыть сайт</span></a></div></aside><main class="admin-main"><div class="page-header"><div><h2>⚙️ Настройки сайта</h2><div class="subtitle">Управление параметрами и конфигурацией</div></div><button class="btn btn-primary" onclick="openAddModal()">➕ Добавить настройку</button></div><div class="card"><div class="card-header"><h3>Параметры</h3></div><div class="card-body" id="settings-list"><div class="loading-state"><p>⏳ Загрузка…</p></div></div></div></main></div>
-
-<!-- Add Setting Modal -->
-<div class="modal-overlay" id="add-modal"><div class="modal modal-sm"><div class="modal-header"><h3>➕ Добавить настройку</h3><button class="modal-close" onclick="closeModal('add-modal')">×</button></div><div class="modal-body"><div class="form-group"><label class="form-label">Ключ<span class="required">*</span></label><input class="form-input" id="new-key" placeholder="например: site_name" autocomplete="off"></div><div class="form-group"><label class="form-label">Значение<span class="required">*</span></label><input class="form-input" id="new-value" placeholder="Значение настройки" autocomplete="off"></div></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('add-modal')">Отмена</button><button class="btn btn-primary" onclick="addSetting()">Сохранить</button></div></div></div>
-
-<!-- Edit Setting Modal -->
-<div class="modal-overlay" id="edit-modal"><div class="modal modal-sm"><div class="modal-header"><h3>✏️ Редактировать настройку</h3><button class="modal-close" onclick="closeModal('edit-modal')">×</button></div><div class="modal-body"><div class="form-group"><label class="form-label">Ключ</label><input class="form-input" id="edit-key" readonly style="background:#f3f4f6;color:#6b7280;"></div><div class="form-group"><label class="form-label">Значение<span class="required">*</span></label><input class="form-input" id="edit-value" autocomplete="off"></div></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('edit-modal')">Отмена</button><button class="btn btn-primary" onclick="saveEdit()">Сохранить</button></div></div></div>
-
-<!-- Delete Confirmation Modal -->
-<div class="modal-overlay" id="delete-modal"><div class="modal modal-sm"><div class="modal-header"><h3>🗑️ Удалить настройку</h3><button class="modal-close" onclick="closeModal('delete-modal')">×</button></div><div class="modal-body"><p>Вы уверены, что хотите удалить настройку <strong id="delete-key-label"></strong>?</p><p style="font-size:13px;color:var(--text-secondary);margin-top:8px;">Это действие нельзя отменить.</p></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('delete-modal')">Отмена</button><button class="btn btn-danger" onclick="confirmDelete()">Удалить</button></div></div></div>
-
-<div class="toast-container" id="toast-container"></div>
-
-<style>
-.toast-container {position:fixed;top:20px;right:20px;z-index:2000;display:flex;flex-direction:column;gap:8px;}
-.toast {padding:12px 20px;border-radius:8px;font-size:14px;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,0.15);animation:slideIn 0.2s ease;max-width:400px;}
-.toast-success {background:#22c55e;color:#fff;}
-.toast-error {background:#ef4444;color:#fff;}
-@keyframes slideIn {from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
-</style>
-
-<script>
-let settingsData = [];
-let deleteTarget = null;
-
-function showToast(msg, type) {
-  const c = document.getElementById('toast-container');
-  const t = document.createElement('div');
-  t.className = 'toast toast-' + type;
-  t.textContent = msg;
-  c.appendChild(t);
-  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(() => t.remove(), 300); }, 2500);
-}
-
-function closeModal(id) {
-  document.getElementById(id).classList.remove('active');
-}
-
-function openModal(id) {
-  document.getElementById(id).classList.add('active');
-}
-
-async function loadSettings() {
-  try {
-    const r = await fetch('/api/settings', { credentials: 'include' });
-    if (!r.ok) throw new Error('Ошибка авторизации');
-    settingsData = await r.json();
-    renderTable();
-  } catch (e) {
-    document.getElementById('settings-list').innerHTML =
-      '<div class="empty-state"><div class="icon">⚠️</div><h3>Ошибка</h3><p>' + e.message + '</p></div>';
-  }
-}
-
-function renderTable() {
-  const el = document.getElementById('settings-list');
-  if (settingsData.length === 0) {
-    el.innerHTML =
-      '<div class="empty-state"><div class="icon">⚙️</div><h3>Нет настроек</h3><p>Нажмите «Добавить настройку», чтобы создать первую.</p></div>';
-    return;
-  }
-  el.innerHTML =
-    '<table style="width:100%;border-collapse:collapse;">' +
-    '<thead><tr style="text-align:left;border-bottom:2px solid var(--border);">' +
-    '<th style="padding:8px 4px;width:35%;">Ключ</th>' +
-    '<th style="padding:8px 4px;width:45%;">Значение</th>' +
-    '<th style="padding:8px 4px;width:20%;text-align:center;">Действия</th>' +
-    '</tr></thead><tbody>' +
-    settingsData.map(s => renderRow(s)).join('') +
-    '</tbody></table>';
-}
-
-function renderRow(s) {
-  return '<tr style="border-bottom:1px solid var(--border);">' +
-    '<td style="padding:10px 4px;font-family:monospace;font-size:13px;">' + escapeHtml(s.key) + '</td>' +
-    '<td style="padding:10px 4px;font-size:14px;word-break:break-word;">' + escapeHtml(s.value) + '</td>' +
-    '<td style="padding:10px 4px;text-align:center;white-space:nowrap;">' +
-    '<button class="btn-icon" title="Редактировать" onclick="openEdit(\'' + escapeJs(s.key) + '\',\'' + escapeJs(s.value) + '\')">✏️</button>' +
-    '<button class="btn-icon danger" title="Удалить" onclick="openDelete(\'' + escapeJs(s.key) + '\')" style="margin-left:4px;">🗑️</button>' +
-    '</td></tr>';
-}
-
-function escapeHtml(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
-
-function escapeJs(s) {
-  return s.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-}
-
-function openAddModal() {
-  document.getElementById('new-key').value = '';
-  document.getElementById('new-value').value = '';
-  openModal('add-modal');
-  setTimeout(() => document.getElementById('new-key').focus(), 100);
-}
-
-async function addSetting() {
-  const key = document.getElementById('new-key').value.trim();
-  const value = document.getElementById('new-value').value.trim();
-  if (!key || !value) {
-    showToast('Заполните ключ и значение', 'error');
-    return;
-  }
-  try {
-    const r = await fetch('/api/settings/' + encodeURIComponent(key), {
-      method: 'PUT',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ value: value }),
-    });
-    if (!r.ok) throw new Error('Ошибка сохранения');
-    closeModal('add-modal');
-    showToast('Настройка «' + key + '» сохранена', 'success');
-    await loadSettings();
-  } catch (e) {
-    showToast(e.message, 'error');
-  }
-}
-
-function openEdit(key, value) {
-  document.getElementById('edit-key').value = key;
-  document.getElementById('edit-value').value = value;
-  openModal('edit-modal');
-  setTimeout(() => document.getElementById('edit-value').focus(), 100);
-}
-
-async function saveEdit() {
-  const key = document.getElementById('edit-key').value;
-  const value = document.getElementById('edit-value').value.trim();
-  if (!value) {
-    showToast('Значение не может быть пустым', 'error');
-    return;
-  }
-  try {
-    const r = await fetch('/api/settings/' + encodeURIComponent(key), {
-      method: 'PUT',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ value: value }),
-    });
-    if (!r.ok) throw new Error('Ошибка сохранения');
-    closeModal('edit-modal');
-    showToast('Настройка «' + key + '» обновлена', 'success');
-    await loadSettings();
-  } catch (e) {
-    showToast(e.message, 'error');
-  }
-}
-
-function openDelete(key) {
-  deleteTarget = key;
-  document.getElementById('delete-key-label').textContent = key;
-  openModal('delete-modal');
-}
-
-async function confirmDelete() {
-  if (!deleteTarget) return;
-  const key = deleteTarget;
-  closeModal('delete-modal');
-  try {
-    const r = await fetch('/api/settings/' + encodeURIComponent(key), {
-      method: 'DELETE',
-      credentials: 'include',
-    });
-    if (!r.ok) throw new Error('Ошибка удаления');
-    showToast('Настройка «' + key + '» удалена', 'success');
-    deleteTarget = null;
-    await loadSettings();
-  } catch (e) {
-    showToast(e.message, 'error');
-    deleteTarget = null;
-  }
-}
-
-loadSettings();
-</script></body></html>
+<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Настройки — Админ-панель</title><link rel="stylesheet" href="/static/css/admin.css"></head>
+<body><div class="admin-layout">
+<aside class="admin-sidebar">
+<div class="sidebar-header"><h1>Золотаревка</h1><span>Панель управления</span></div>
+<nav class="sidebar-nav">
+<a href="/admin/" class="nav-item"><span class="icon">🗺️</span><span>Страницы сайта</span></a>
+<a href="/admin/menu" class="nav-item"><span class="icon">📋</span><span>Меню</span></a>
+<a href="/admin/media" class="nav-item"><span class="icon">🖼️</span><span>Медиа-центр</span></a>
+<a href="/admin/settings-page" class="nav-item active"><span class="icon">⚙️</span><span>Настройки</span></a>
+<a href="/admin/roles-page" class="nav-item"><span class="icon">👥</span><span>Пользователи и роли</span></a>
+</nav>
+<div style="padding:12px 16px;border-top:1px solid rgba(255,255,255,0.06);"><a href="/" class="nav-item" style="font-size:13px;" target="_blank"><span class="icon">↗️</span><span>Открыть сайт</span></a></div>
+</aside>
+<main class="admin-main">
+<div class="page-header"><div><h2>Настройки сайта</h2><div class="subtitle">Управление параметрами и конфигурацией</div></div></div>
+<div class="card"><div class="card-header"><h3>Параметры</h3></div><div class="card-body">
+{% if settings %}
+<table style="width:100%;border-collapse:collapse;">
+<tr style="text-align:left;border-bottom:2px solid #e5e7eb;"><th style="padding:8px 4px;">Ключ</th><th style="padding:8px 4px;">Значение</th></tr>
+{% for s in settings %}
+<tr style="border-bottom:1px solid #e5e7eb;">
+<td style="padding:10px 4px;font-family:monospace;">{{ s.key }}</td>
+<td style="padding:10px 4px;">{{ s.value }}</td>
+</tr>
+{% endfor %}
+</table>
+{% else %}
+<div class="empty-state"><div class="icon">⚙️</div><h3>Нет настроек</h3><p>Добавьте настройки через API.</p></div>
+{% endif %}
+</div></div>
+</main></div>
+</body></html>

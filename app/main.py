@@ -87,8 +87,15 @@ app.include_router(users.router)
 @app.get("/admin/", response_class=HTMLResponse, include_in_schema=False)
 def admin_dashboard(request: Request):
     if not is_authenticated(request):
-        return RedirectResponse(url="/admin/login?next=/admin", status_code=302)
-    return templates.TemplateResponse(request=request, name="admin/dashboard.html")
+        return RedirectResponse(url="/admin/login?next=/", status_code=302)
+    from app.database import SessionLocal
+    from app.models import Page
+    db = SessionLocal()
+    try:
+        pages = db.query(Page).order_by(Page.order).all()
+    finally:
+        db.close()
+    return templates.TemplateResponse(request=request, name="admin/dashboard.html", context={"pages": pages})
 
 
 @app.get("/admin/menu", response_class=HTMLResponse, include_in_schema=False)
@@ -104,7 +111,14 @@ def admin_menu_page(request: Request):
 def admin_media(request: Request):
     if not is_authenticated(request):
         return RedirectResponse(url="/admin/login?next=/media", status_code=302)
-    return templates.TemplateResponse(request=request, name="admin/media.html")
+    from app.database import SessionLocal
+    from app.models import MediaItem
+    db = SessionLocal()
+    try:
+        items = db.query(MediaItem).order_by(MediaItem.created_at.desc()).all()
+    finally:
+        db.close()
+    return templates.TemplateResponse(request=request, name="admin/media.html", context={"media_items": items})
 
 
 @app.get("/admin/content", response_class=HTMLResponse, include_in_schema=False)
@@ -118,14 +132,30 @@ def admin_content(request: Request):
 def admin_settings(request: Request):
     if not is_authenticated(request):
         return RedirectResponse(url="/admin/login?next=/settings", status_code=302)
-    return templates.TemplateResponse(request=request, name="admin/settings.html")
+    from app.database import SessionLocal
+    from app.models import Setting
+    db = SessionLocal()
+    try:
+        settings = db.query(Setting).order_by(Setting.key).all()
+    finally:
+        db.close()
+    return templates.TemplateResponse(request=request, name="admin/settings.html", context={"settings": settings})
 
 
 @app.get("/admin/roles-page", response_class=HTMLResponse, include_in_schema=False)
 def admin_roles(request: Request):
     if not is_authenticated(request):
         return RedirectResponse(url="/admin/login?next=/roles", status_code=302)
-    return templates.TemplateResponse(request=request, name="admin/roles.html")
+    from app.database import SessionLocal
+    from app.models import Role, User
+    from app.services.users import get_users, get_roles
+    db = SessionLocal()
+    try:
+        roles = get_roles(db)
+        users = get_users(db)
+    finally:
+        db.close()
+    return templates.TemplateResponse(request=request, name="admin/roles.html", context={"roles": roles, "users": users})
 
 
 # ── Public page routes (Jinja2) ──────────────────────────────────────────

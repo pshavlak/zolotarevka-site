@@ -13,22 +13,23 @@
 <div style="padding:12px 16px;border-top:1px solid rgba(255,255,255,0.06);"><a href="/" class="nav-item" style="font-size:13px;" target="_blank"><span class="icon">↗️</span><span>Открыть сайт</span></a></div>
 </aside>
 <main class="admin-main">
-<div class="page-header"><div><h2>Медиа-центр</h2><div class="subtitle">Загрузка и управление файлами</div></div>
-<button class="btn btn-primary" onclick="document.getElementById('file-input').click()">+ Загрузить файл</button>
-<input type="file" id="file-input" style="display:none" multiple onchange="uploadFiles(this.files)"></div>
-<div class="card"><div class="card-header"><h3>Загруженные файлы</h3></div><div class="card-body" id="media-list"><div class="loading-state"><p>Загрузка...</p></div></div></div>
-<div id="upload-progress" style="display:none;" class="card"><div class="card-body"><p>Загрузка...</p><progress id="progress-bar" style="width:100%;height:20px;"></progress></div></div>
+<div class="page-header"><div><h2>Медиа-центр</h2><div class="subtitle">Загрузка и управление файлами</div></div></div>
+<div class="card"><div class="card-header"><h3>Загруженные файлы</h3></div><div class="card-body">
+{% if media_items %}
+<table style="width:100%;border-collapse:collapse;">
+<tr style="text-align:left;border-bottom:2px solid #e5e7eb;"><th style="padding:8px 4px;">Файл</th><th style="padding:8px 4px;">Размер</th><th style="padding:8px 4px;">Тип</th><th style="padding:8px 4px;">Дата</th></tr>
+{% for m in media_items %}
+<tr style="border-bottom:1px solid #e5e7eb;">
+<td style="padding:10px 4px;">{{ m.original_name }}</td>
+<td style="padding:10px 4px;">{{ '%0.1f'|format(m.size_bytes / 1024) }} KB</td>
+<td style="padding:10px 4px;">{{ m.mime_type }}</td>
+<td style="padding:10px 4px;">{{ m.created_at.strftime('%Y-%m-%d') }}</td>
+</tr>
+{% endfor %}
+</table>
+{% else %}
+<div class="empty-state"><div class="icon">🖼️</div><h3>Нет файлов</h3><p>Используйте API для загрузки файлов.</p></div>
+{% endif %}
+</div></div>
 </main></div>
-<div class="toast-container" id="toast-container"></div>
-<script>
-var MEDIA=[];
-function T(m,t){var c=document.getElementById('toast-container'),e=document.createElement('div');e.className='toast toast-'+(t||'success');e.textContent=m;c.appendChild(e);setTimeout(function(){e.remove();},3000);}
-function load(){fetch('/api/media',{credentials:'include'}).then(function(r){if(!r.ok)throw new Error('Ошибка загрузки');return r.json();}).then(function(d){MEDIA=d;var el=document.getElementById('media-list');if(!MEDIA||MEDIA.length===0){el.innerHTML='<div class=\"empty-state\"><div class=\"icon\">🖼️</div><h3>Нет файлов</h3><p>Нажмите "Загрузить файл" чтобы добавить изображения или документы.</p></div>';return;}
-var h='<table style=\"width:100%;border-collapse:collapse;\"><tr style=\"text-align:left;border-bottom:2px solid #e5e7eb;\"><th style=\"padding:8px 4px;\">Файл</th><th style=\"padding:8px 4px;\">Размер</th><th style=\"padding:8px 4px;\">Тип</th><th style=\"padding:8px 4px;\">Дата</th><th style=\"padding:8px 4px;\">Действия</th></tr>';
-for(var i=0;i<MEDIA.length;i++){var m=MEDIA[i];h+='<tr style=\"border-bottom:1px solid #e5e7eb;\"><td style=\"padding:10px 4px;\">'+(m.mime_type&&m.mime_type.startsWith('image')?'<img src=\"/static/uploads/'+m.filename+'\" style=\"height:40px;width:40px;object-fit:cover;border-radius:4px;vertical-align:middle;margin-right:8px;\">':'')+m.original_name+'</td><td style=\"padding:10px 4px;\">'+(m.size_bytes/1024).toFixed(1)+' KB</td><td style=\"padding:10px 4px;\">'+m.mime_type+'</td><td style=\"padding:10px 4px;\">'+m.created_at.slice(0,10)+'</td><td style=\"padding:10px 4px;\"><button class=\"btn btn-sm btn-danger\" onclick=\"deleteMedia('+m.id+',\\''+m.original_name.replace(/'/g,'')+'\\')\" title=\"Удалить\">🗑️</button></td></tr>';}
-h+='</table>';el.innerHTML=h;}).catch(function(e){document.getElementById('media-list').innerHTML='<div class=\"empty-state\"><div class=\"icon\">⚠️</div><h3>Ошибка загрузки данных</h3><p>'+e.message+'</p></div>';});}
-function uploadFiles(files){if(!files.length)return;var p=document.getElementById('upload-progress');p.style.display='block';var bar=document.getElementById('progress-bar');var fd=new FormData();for(var i=0;i<files.length;i++)fd.append('file',files[i]);fetch('/api/media/upload',{method:'POST',credentials:'include',body:fd}).then(function(r){if(!r.ok)throw new Error('Ошибка загрузки');return r.json();}).then(function(d){T('Файл загружен: '+d.original_name);p.style.display='none';load();}).catch(function(e){T(e.message,'error');p.style.display='none';});}
-function deleteMedia(id,name){if(!confirm('Удалить файл "'+name+'"?'))return;fetch('/api/media/'+id,{method:'DELETE',credentials:'include'}).then(function(r){if(r.status!==204)throw new Error('Ошибка удаления');T('Файл удален');load();}).catch(function(e){T(e.message,'error');});}
-load();
-</script>
 </body></html>

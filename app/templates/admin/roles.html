@@ -14,45 +14,36 @@
 </aside>
 <main class="admin-main">
 <div class="page-header"><div><h2>Пользователи и роли</h2><div class="subtitle">Управление доступом к админ-панели сайта</div></div></div>
-
-<div class="card"><div class="card-header"><h3>Роли</h3><button class="btn btn-primary btn-sm" onclick="openRoleForm()">+ Добавить роль</button></div><div class="card-body" id="roles-list"><div class="loading-state"><p>Загрузка...</p></div></div></div>
-
-<div class="card"><div class="card-header"><h3>Пользователи</h3><button class="btn btn-primary btn-sm" onclick="openUserForm()">+ Добавить пользователя</button></div><div class="card-body" id="users-list"><div class="loading-state"><p>Загрузка...</p></div></div></div>
+<div class="card"><div class="card-header"><h3>Роли</h3></div><div class="card-body">
+{% if roles %}
+<table style="width:100%;border-collapse:collapse;">
+<tr style="text-align:left;border-bottom:2px solid #e5e7eb;"><th style="padding:8px 4px;">Название</th><th style="padding:8px 4px;">Дата создания</th></tr>
+{% for r in roles %}
+<tr style="border-bottom:1px solid #e5e7eb;">
+<td style="padding:10px 4px;">{{ r.name }}</td>
+<td style="padding:10px 4px;color:#6b7280;">{{ r.created_at.strftime('%Y-%m-%d') }}</td>
+</tr>
+{% endfor %}
+</table>
+{% else %}
+<div class="empty-state"><div class="icon">🔑</div><h3>Нет ролей</h3></div>
+{% endif %}
+</div></div>
+<div class="card"><div class="card-header"><h3>Пользователи</h3></div><div class="card-body">
+{% if users %}
+<table style="width:100%;border-collapse:collapse;">
+<tr style="text-align:left;border-bottom:2px solid #e5e7eb;"><th style="padding:8px 4px;">Имя</th><th style="padding:8px 4px;">Роль</th><th style="padding:8px 4px;">Статус</th></tr>
+{% for u in users %}
+<tr style="border-bottom:1px solid #e5e7eb;">
+<td style="padding:10px 4px;">{{ u.username }}</td>
+<td style="padding:10px 4px;">{{ u.role_name or '—' }}</td>
+<td style="padding:10px 4px;">{{ 'Активен' if u.is_active else 'Отключен' }}</td>
+</tr>
+{% endfor %}
+</table>
+{% else %}
+<div class="empty-state"><div class="icon">👤</div><h3>Нет пользователей</h3></div>
+{% endif %}
+</div></div>
 </main></div>
-
-<div class="modal-overlay" id="role-modal"><div class="modal modal-sm">
-<div class="modal-header"><h3>Новая роль</h3><button class="modal-close" onclick="closeRoleForm()">X</button></div>
-<form onsubmit="submitRole(event)"><div class="modal-body">
-<div class="form-group"><label class="form-label">Название роли</label><input class="form-input" type="text" id="r-name" required></div>
-<div class="form-group"><label class="form-label">Описание</label><input class="form-input" type="text" id="r-desc"></div>
-</div><div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeRoleForm()">Отмена</button><button type="submit" class="btn btn-primary">Создать</button></div></form></div></div>
-
-<div class="modal-overlay" id="user-modal"><div class="modal modal-sm">
-<div class="modal-header"><h3>Новый пользователь</h3><button class="modal-close" onclick="closeUserForm()">X</button></div>
-<form onsubmit="submitUser(event)"><div class="modal-body">
-<div class="form-group"><label class="form-label">Имя пользователя</label><input class="form-input" type="text" id="u-name" required></div>
-<div class="form-group"><label class="form-label">Роль</label><select class="form-select" id="u-role"></select></div>
-</div><div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeUserForm()">Отмена</button><button type="submit" class="btn btn-primary">Создать</button></div></form></div></div>
-
-<div class="toast-container" id="toast-container"></div>
-<script>
-var ROLES=[], USERS=[];
-function T(m,t){var c=document.getElementById('toast-container'),e=document.createElement('div');e.className='toast toast-'+(t||'success');e.textContent=m;c.appendChild(e);setTimeout(function(){e.remove();},3000);}
-function api(p,opts){return fetch('/api'+p,Object.assign({credentials:'include',headers:{'Content-Type':'application/json'}},opts)).then(function(r){if(!r.ok)return r.json().then(function(e){throw new Error(e.detail||'Error');});return r.status===204?null:r.json();});}
-function load(){api('/roles').then(function(d){ROLES=d;var el=document.getElementById('roles-list');if(!ROLES||ROLES.length===0){el.innerHTML='<div class=\"empty-state\"><div class=\"icon\">🔑</div><h3>Нет ролей</h3><p>Создайте первую роль.</p></div>';return;}
-el.innerHTML='<table style=\"width:100%;border-collapse:collapse;\"><tr style=\"text-align:left;border-bottom:2px solid #e5e7eb;\"><th style=\"padding:8px 4px;\">Название</th><th style=\"padding:8px 4px;\">Описание</th><th style=\"padding:8px 4px;width:80px;\">Действия</th></tr>'+
-ROLES.map(function(r){return'<tr style=\"border-bottom:1px solid #e5e7eb;\"><td style=\"padding:10px 4px;\">'+r.name+'</td><td style=\"padding:10px 4px;color:#6b7280;\">'+r.description+'</td><td style=\"padding:10px 4px;\"><button class=\"btn btn-sm btn-danger\" onclick=\"delRole('+r.id+',\\''+r.name.replace(/'/g,'')+'\\')\" title=\"Удалить\">🗑️</button></td></tr>';}).join('')+'</table>';}).catch(function(e){document.getElementById('roles-list').innerHTML='<div class=\"empty-state\"><div class=\"icon\">⚠️</div><h3>Ошибка загрузки данных</h3><p>'+e.message+'</p></div>';});
-api('/users').then(function(d){USERS=d;var el=document.getElementById('users-list');if(!USERS||USERS.length===0){el.innerHTML='<div class=\"empty-state\"><div class=\"icon\">👤</div><h3>Нет пользователей</h3><p>Создайте первого пользователя.</p></div>';return;}
-el.innerHTML='<table style=\"width:100%;border-collapse:collapse;\"><tr style=\"text-align:left;border-bottom:2px solid #e5e7eb;\"><th style=\"padding:8px 4px;\">Имя</th><th style=\"padding:8px 4px;\">Роль</th><th style=\"padding:8px 4px;\">Статус</th><th style=\"padding:8px 4px;width:80px;\">Действия</th></tr>'+
-USERS.map(function(u){return'<tr style=\"border-bottom:1px solid #e5e7eb;\"><td style=\"padding:10px 4px;\">'+u.username+'</td><td style=\"padding:10px 4px;\">'+(u.role_name||'—')+'</td><td style=\"padding:10px 4px;\">'+(u.is_active?'Активен':'Отключен')+'</td><td style=\"padding:10px 4px;\"><button class=\"btn btn-sm btn-danger\" onclick=\"delUser('+u.id+',\\''+u.username.replace(/'/g,'')+'\\')\" title=\"Удалить\">🗑️</button></td></tr>';}).join('')+'</table>';}).catch(function(e){document.getElementById('users-list').innerHTML='<div class=\"empty-state\"><div class=\"icon\">⚠️</div><h3>Ошибка загрузки данных</h3><p>'+e.message+'</p></div>';});}
-function openRoleForm(){document.getElementById('role-modal').classList.add('active');document.getElementById('r-name').value='';document.getElementById('r-desc').value='';}
-function closeRoleForm(){document.getElementById('role-modal').classList.remove('active');}
-function submitRole(e){e.preventDefault();api('/roles',{method:'POST',body:JSON.stringify({name:document.getElementById('r-name').value,description:document.getElementById('r-desc').value})}).then(function(){T('Роль создана');closeRoleForm();load();}).catch(function(e){T(e.message,'error');});}
-function delRole(id,n){if(!confirm('Удалить роль "'+n+'"?'))return;api('/roles/'+id,{method:'DELETE'}).then(function(){T('Роль удалена');load();}).catch(function(e){T(e.message,'error');});}
-function openUserForm(){document.getElementById('user-modal').classList.add('active');document.getElementById('u-name').value='';var sel=document.getElementById('u-role');sel.innerHTML='<option value="">— Без роли —</option>'+ROLES.map(function(r){return'<option value="'+r.id+'">'+r.name+'</option>';}).join('');}
-function closeUserForm(){document.getElementById('user-modal').classList.remove('active');}
-function submitUser(e){e.preventDefault();var role=document.getElementById('u-role').value;api('/users',{method:'POST',body:JSON.stringify({username:document.getElementById('u-name').value,role_id:role?parseInt(role):null})}).then(function(){T('Пользователь создан');closeUserForm();load();}).catch(function(e){T(e.message,'error');});}
-function delUser(id,n){if(!confirm('Удалить пользователя "'+n+'"?'))return;api('/users/'+id,{method:'DELETE'}).then(function(){T('Пользователь удален');load();}).catch(function(e){T(e.message,'error');});}
-load();
-</script>
 </body></html>
