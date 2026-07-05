@@ -1,0 +1,58 @@
+"""Test fixtures for menu CRUD tests."""
+
+from collections.abc import Generator
+
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+
+from app.database import Base, get_db
+
+TEST_DATABASE_URL = "sqlite:///:memory:"
+
+engine = create_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+@pytest.fixture(autouse=True)
+def setup_db() -> Generator[None, None, None]:
+    """Create tables before each test, drop them after."""
+    Base.metadata.create_all(bind=engine)
+    yield
+    Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture
+def db_session(setup_db: None) -> Generator[Session, None, None]:
+    """Provide a clean database session per test."""
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+# ── FastAPI test client ────────────────────────────────────────────────────
+
+
+def _override_get_db() -> Generator[Session, None, None]:
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@pytest.fixture
+def client() -> Generator[TestClient, None, None]:
+    """Provide a sync TestClient with an isolated in-memory database."""
+    from app.routers.menu import router as menu_router
+
+    app = FastAPI()
+    app.include_router(menu_router, prefix="/api")
+    app.dependency_overrides[get_db] = _override_get_db
+
+    with TestClient(app) as c:
+        yield c

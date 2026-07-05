@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="hero" style="background: linear-gradient(135deg, #1b4332, #2d6a4f);">
+    <div class="hero__overlay"></div>
+    <div class="container hero__content">
+        <h1 class="hero__title">Добро пожаловать в Золотаревку!</h1>
+        <p class="hero__subtitle">Неофициальный портал нашего села. Новости, события, спорт, история и многое другое.</p>
+        <a href="#sections" class="hero__btn btn btn--accent">Исследовать разделы →</a>
+    </div>
+</section>
+
+<section id="sections" class="bento-section container">
+    <h2 class="section__title">Разделы сайта</h2>
+    <div class="bento-grid">
+        {% for item in menu %}
+            <a href="{{ item.url }}" class="bento__card">
+                <div class="bento__card-body">
+                    <h3 class="bento__card-title">{{ item.title }}</h3>
+                    <span class="bento__card-link">Перейти →</span>
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="cta-section container">
+    <div class="cta-block">
+        <h2 class="cta-block__title">Предложить новость</h2>
+        <p class="cta-block__text">Хотите поделиться новостью или событием? Отправьте нам сообщение!</p>
+        <button class="cta-block__btn btn btn--primary" id="openSuggestModal">
+            Предложить новость
+        </button>
+    </div>
+</section>
+{% endblock %}

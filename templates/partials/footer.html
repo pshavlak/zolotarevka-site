@@ -1,0 +1,25 @@
+<footer class="footer">
+    <div class="container footer__inner">
+        <div class="footer__col">
+            <h4 class="footer__title">🌾 Золотаревка</h4>
+            <p class="footer__text">Неофициальный портал села</p>
+        </div>
+        <div class="footer__col">
+            <h4 class="footer__title">Разделы</h4>
+            <ul class="footer__links">
+                {% for item in menu %}
+                    <li><a href="{{ item.url }}" class="footer__link">{{ item.title }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="footer__col">
+            <h4 class="footer__title">Контакты</h4>
+            <p class="footer__text">info@zolotarevka.ru</p>
+        </div>
+    </div>
+    <div class="footer__bottom">
+        <div class="container">
+            © 2026 Неофициальный портал села Золотаревка
+        </div>
+    </div>
+</footer>
