@@ -1,45 +1,58 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Страницы сайта — Админ-панель</title>
-<link rel="stylesheet" href="/static/css/admin.css"></head>
-<body>
-<div class="admin-layout">
-  <aside class="admin-sidebar">
-    <div class="sidebar-header"><h1>Золотаревка</h1><span>Панель управления</span></div>
-    <nav class="sidebar-nav">
-      <a href="/admin/" class="nav-item active"><span class="icon">🗺️</span><span>Страницы сайта</span></a>
-      <a href="/admin/menu" class="nav-item"><span class="icon">📋</span><span>Меню</span></a>
-      <a href="/admin/media" class="nav-item"><span class="icon">🖼️</span><span>Медиа-центр</span></a>
-      <a href="/admin/content" class="nav-item"><span class="icon">📰</span><span>Контент</span></a>
-      <a href="/admin/settings-page" class="nav-item"><span class="icon">⚙️</span><span>Настройки</span></a>
-      <a href="/admin/roles-page" class="nav-item"><span class="icon">👥</span><span>Пользователи и роли</span></a>
-    </nav>
-    <div style="padding:12px 16px;border-top:1px solid rgba(255,255,255,0.06);">
-      <a href="/" class="nav-item" style="font-size:13px;" target="_blank"><span class="icon">↗️</span><span>Открыть сайт</span></a>
-    </div>
-  </aside>
-  <main class="admin-main">
-    <div class="page-header"><div><h2>🗺️ Страницы сайта</h2><div class="subtitle">Управление страницами и контентом</div></div></div>
-    <div class="card">
-      <div class="card-header"><h3>Все страницы</h3></div>
-      <div class="card-body" id="pages-list"><div class="loading-state"><p>⏳ Загрузка…</p></div></div>
-    </div>
-  </main>
+<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Страницы сайта — Админ-панель</title><link rel="stylesheet" href="/static/css/admin.css"></head>
+<body><div class="admin-layout">
+<aside class="admin-sidebar">
+<div class="sidebar-header"><h1>Золотаревка</h1><span>Панель управления</span></div>
+<nav class="sidebar-nav">
+<a href="/admin/" class="nav-item active"><span class="icon">🗺️</span><span>Страницы сайта</span></a>
+<a href="/admin/menu" class="nav-item"><span class="icon">📋</span><span>Меню</span></a>
+<a href="/admin/media" class="nav-item"><span class="icon">🖼️</span><span>Медиа-центр</span></a>
+<a href="/admin/settings-page" class="nav-item"><span class="icon">⚙️</span><span>Настройки</span></a>
+<a href="/admin/roles-page" class="nav-item"><span class="icon">👥</span><span>Пользователи и роли</span></a>
+</nav>
+<div style="padding:12px 16px;border-top:1px solid rgba(255,255,255,0.06);"><a href="/" class="nav-item" style="font-size:13px;" target="_blank"><span class="icon">↗️</span><span>Открыть сайт</span></a></div>
+</aside>
+<main class="admin-main">
+<div class="page-header"><div><h2>🗺️ Страницы сайта</h2><div class="subtitle">Управление контентом страниц</div></div>
+<button class="btn btn-primary" onclick="openPageForm(null)">+ Новая страница</button></div>
+<div class="card"><div class="card-header"><h3>Все страницы</h3></div><div class="card-body" id="pages-list"><div class="loading-state"><p>Загрузка...</p></div></div></div>
+</main></div>
+
+<div class="modal-overlay" id="page-form-modal">
+<div class="modal"><div class="modal-header"><h3 id="modal-title">Новая страница</h3><button class="modal-close" onclick="closePageForm()">X</button></div>
+<form id="page-form" onsubmit="submitPageForm(event)">
+<input type="hidden" id="form-page-id">
+<div class="modal-body">
+<div class="form-group"><label class="form-label">Название</label><input class="form-input" type="text" id="form-title" required></div>
+<div class="form-group"><label class="form-label">URL (slug)</label><input class="form-input" type="text" id="form-slug"></div>
+<div class="form-group"><label class="form-label">Содержимое (HTML)</label><textarea class="form-input" id="form-content" rows="10" style="font-family:monospace;font-size:13px;"></textarea></div>
+<label class="form-checkbox"><input type="checkbox" id="form-published" checked> Опубликовано</label>
 </div>
+<div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closePageForm()">Отмена</button><button type="submit" class="btn btn-primary">Сохранить</button></div>
+</form></div></div>
+
+<div class="modal-overlay" id="delete-modal">
+<div class="modal modal-sm"><div class="modal-header"><h3>Подтверждение</h3><button class="modal-close" onclick="cancelDelete()">X</button></div>
+<div class="modal-body"><p>Удалить страницу <strong id="delete-page-name"></strong>?</p></div>
+<div class="modal-footer"><button class="btn btn-secondary" onclick="cancelDelete()">Отмена</button><button class="btn btn-danger" onclick="executeDelete()">Удалить</button></div>
+</div></div>
+
 <div class="toast-container" id="toast-container"></div>
 <script>
-async function loadPages() {
-  try {
-    const r = await fetch('/api/pages', {credentials:'include'});
-    if (!r.ok) { document.getElementById('pages-list').innerHTML = '<div class="empty-state"><div class="icon">🔒</div><h3>Требуется авторизация</h3></div>'; return; }
-    const pages = await r.json();
-    const el = document.getElementById('pages-list');
-    if (pages.length === 0) { el.innerHTML = '<div class="empty-state"><div class="icon">📄</div><h3>Нет страниц</h3></div>'; return; }
-    el.innerHTML = '<table style="width:100%;border-collapse:collapse;"><tr style="text-align:left;border-bottom:2px solid var(--border);"><th style="padding:8px 4px;">Название</th><th style="padding:8px 4px;">URL</th><th style="padding:8px 4px;">Статус</th></tr>' +
-      pages.map(p => '<tr style="border-bottom:1px solid var(--border);"><td style="padding:10px 4px;">' + p.title + '</td><td style="padding:10px 4px;color:var(--primary);">/' + p.slug + '</td><td style="padding:10px 4px;">' + (p.is_published ? '✅' : '⏸️') + '</td></tr>').join('') + '</table>';
-  } catch(e) { document.getElementById('pages-list').innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><h3>Ошибка</h3><p>' + e.message + '</p></div>'; }
-}
+var pages = [], deleteId = null;
+function toast(m,t){var c=document.getElementById('toast-container'),e=document.createElement('div');e.className='toast toast-'+(t||'success');e.textContent=m;c.appendChild(e);setTimeout(function(){e.remove();},3000);}
+function api(method,path,body){var opts={method:method,headers:{'Content-Type':'application/json'},credentials:'include'};if(body!==undefined)opts.body=JSON.stringify(body);return fetch('/api/pages'+path,opts).then(function(r){if(!r.ok)return r.json().then(function(e){throw new Error(e.detail||'Error');});if(r.status===204)return null;return r.json();});}
+function loadPages(){api('GET','').then(function(data){pages=data;var el=document.getElementById('pages-list');if(pages.length===0){el.innerHTML='<div class=\"empty-state\"><div class=\"icon\">📄</div><h3>Нет страниц</h3><p>Создайте первую страницу.</p><button class=\"btn btn-primary\" onclick=\"openPageForm(null)\">+ Новая страница</button></div>';return;}
+var html='<table style=\"width:100%;border-collapse:collapse;\"><tr style=\"text-align:left;border-bottom:2px solid #e5e7eb;\"><th style=\"padding:8px 4px;\">Название</th><th style=\"padding:8px 4px;\">URL</th><th style=\"padding:8px 4px;width:80px;\">Статус</th><th style=\"padding:8px 4px;width:100px;\">Действия</th></tr>';
+for(var i=0;i<pages.length;i++){var p=pages[i];html+='<tr style=\"border-bottom:1px solid #e5e7eb;\"><td style=\"padding:10px 4px;\"><strong>'+p.title+'</strong><br><span style=\"font-size:12px;color:#6b7280;\">'+(p.content||'').substring(0,80)+'...</span></td><td style=\"padding:10px 4px;color:#3b82f6;\">/'+p.slug+'</td><td style=\"padding:10px 4px;\">'+(p.is_published?'Опубликовано':'Черновик')+'</td><td style=\"padding:10px 4px;\"><button class=\"btn btn-sm\" onclick=\"editPage('+p.id+')\" title=\"Редактировать\">✏️</button> <button class=\"btn btn-sm btn-danger\" onclick=\"confirmDelete('+p.id+',\\''+p.title.replace(/'/g,'')+'\\')\" title=\"Удалить\">🗑️</button></td></tr>';}
+html+='</table>';el.innerHTML=html;}).catch(function(e){document.getElementById('pages-list').innerHTML='<div class=\"empty-state\"><div class=\"icon\">⚠️</div><h3>Ошибка</h3><p>'+e.message+'</p></div>';});}
+function openPageForm(p){document.getElementById('page-form-modal').classList.add('active');document.body.style.overflow='hidden';if(p){document.getElementById('modal-title').textContent='Редактировать страницу';document.getElementById('form-page-id').value=p.id;document.getElementById('form-title').value=p.title;document.getElementById('form-slug').value=p.slug;document.getElementById('form-content').value=p.content||'';document.getElementById('form-published').checked=p.is_published;}else{document.getElementById('modal-title').textContent='Новая страница';document.getElementById('form-page-id').value='';document.getElementById('form-title').value='';document.getElementById('form-slug').value='';document.getElementById('form-content').value='';document.getElementById('form-published').checked=true;}}
+function closePageForm(){document.getElementById('page-form-modal').classList.remove('active');document.body.style.overflow='';}
+function submitPageForm(e){e.preventDefault();var id=document.getElementById('form-page-id').value;var data={title:document.getElementById('form-title').value,slug:document.getElementById('form-slug').value||document.getElementById('form-title').value.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),content:document.getElementById('form-content').value,is_published:document.getElementById('form-published').checked};var req=id?api('PUT','/'+id,data):api('POST','',data);req.then(function(){toast(id?'Страница обновлена':'Страница создана');closePageForm();loadPages();}).catch(function(e){toast(e.message,'error');});}
+function confirmDelete(id,title){document.getElementById('delete-page-name').textContent=title;deleteId=id;document.getElementById('delete-modal').classList.add('active');}
+function cancelDelete(){document.getElementById('delete-modal').classList.remove('active');deleteId=null;}
+function executeDelete(){api('DELETE','/'+deleteId).then(function(){toast('Страница удалена');cancelDelete();loadPages();}).catch(function(e){toast(e.message,'error');});}
+function editPage(id){for(var i=0;i<pages.length;i++){if(pages[i].id===id){openPageForm(pages[i]);return;}}}
 loadPages();
 </script>
 </body></html>

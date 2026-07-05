@@ -1,1 +1,604 @@
-<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Пользователи — Админ-панель</title><link rel="stylesheet" href="/static/css/admin.css"></head><body><div class="admin-layout"><aside class="admin-sidebar"><div class="sidebar-header"><h1>Золотаревка</h1><span>Панель управления</span></div><nav class="sidebar-nav"><a href="/admin/" class="nav-item"><span class="icon">🗺️</span><span>Страницы сайта</span></a><a href="/admin/menu" class="nav-item"><span class="icon">📋</span><span>Меню</span></a><a href="/admin/media" class="nav-item"><span class="icon">🖼️</span><span>Медиа-центр</span></a><a href="/admin/content" class="nav-item"><span class="icon">📰</span><span>Контент</span></a><a href="/admin/settings-page" class="nav-item"><span class="icon">⚙️</span><span>Настройки</span></a><a href="/admin/roles-page" class="nav-item active"><span class="icon">👥</span><span>Пользователи и роли</span></a></nav><div style="padding:12px 16px;border-top:1px solid rgba(255,255,255,0.06);"><a href="/" class="nav-item" style="font-size:13px;" target="_blank"><span class="icon">↗️</span><span>Открыть сайт</span></a></div></aside><main class="admin-main"><div class="page-header"><div><h2>👥 Пользователи и роли</h2><div class="subtitle">Управление доступом к админ-панели</div></div></div><div class="card"><div class="card-header"><h3>Пользователи</h3></div><div class="card-body"><div class="empty-state"><div class="icon">🔧</div><h3>Раздел в разработке</h3><p>Управление пользователями и ролями через админ-панель будет добавлено позже.</p></div></div></div></main></div></body></html>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Пользователи — Админ-панель</title>
+  <link rel="stylesheet" href="/static/css/admin.css">
+  <style>
+    /* ── Table styles ───────────────────────────────────────────── */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .data-table th {
+      text-align: left;
+      padding: 10px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .data-table td {
+      padding: 10px 12px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: #f9fafb; }
+    .data-table .username-cell {
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .data-table .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #eff6ff;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .role-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 500;
+      background: #f0f0f0;
+      color: var(--text-secondary);
+    }
+    .role-badge.admin   { background: #fef2f2; color: var(--danger); }
+    .role-badge.editor  { background: #eff6ff; color: #1d4ed8; }
+    .role-badge.viewer  { background: #f0fdf4; color: #15803d; }
+    .date-cell { color: var(--text-secondary); font-size: 13px; white-space: nowrap; }
+    .actions-cell { white-space: nowrap; text-align: right; }
+
+    /* ── Roles list ───────────────────────────────────────────── */
+    .roles-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .role-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #fafafa;
+      font-size: 14px;
+      font-weight: 500;
+      transition: border-color 0.15s;
+    }
+    .role-chip .role-name { flex: 1; }
+    .role-chip .role-count {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+    .role-chip .remove-role {
+      width: 20px;
+      height: 20px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      line-height: 1;
+    }
+    .role-chip .remove-role:hover {
+      color: var(--danger);
+      background: #fef2f2;
+    }
+
+    /* ── Two-column layout ─────────────────────────────────────── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 900px) {
+      .two-col { grid-template-columns: 1fr; }
+    }
+
+    /* ── User form type selector ───────────────────────────────── */
+    .password-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* ── Toast overlay fix ─────────────────────────────────────── */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      animation: slideUp 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 400px;
+    }
+    .toast-success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .toast-error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .confirm-icon {
+      text-align: center;
+      font-size: 36px;
+      margin-bottom: 12px;
+    }
+    .confirm-text { text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="admin-layout">
+
+    {# ── Sidebar ────────────────────────────────────────────────── #}
+    <aside class="admin-sidebar">
+      <div class="sidebar-header">
+        <h1>Золотаревка</h1>
+        <span>Панель управления</span>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="/admin/" class="nav-item">
+          <span class="icon">🗺️</span><span>Страницы сайта</span>
+        </a>
+        <a href="/admin/menu" class="nav-item">
+          <span class="icon">📋</span><span>Меню</span>
+        </a>
+        <a href="/admin/media" class="nav-item">
+          <span class="icon">🖼️</span><span>Медиа-центр</span>
+        </a>
+        <a href="/admin/content" class="nav-item">
+          <span class="icon">📰</span><span>Контент</span>
+        </a>
+        <a href="/admin/settings-page" class="nav-item">
+          <span class="icon">⚙️</span><span>Настройки</span>
+        </a>
+        <a href="/admin/roles-page" class="nav-item active">
+          <span class="icon">👥</span><span>Пользователи и роли</span>
+        </a>
+      </nav>
+      <div style="padding:12px 16px;border-top:1px solid rgba(255,255,255,0.06);">
+        <a href="/" class="nav-item" style="font-size:13px;" target="_blank">
+          <span class="icon">↗️</span><span>Открыть сайт</span>
+        </a>
+      </div>
+    </aside>
+
+    {# ── Main Content ───────────────────────────────────────────── #}
+    <main class="admin-main">
+      <div class="page-header">
+        <div>
+          <h2>👥 Пользователи и роли</h2>
+          <div class="subtitle">Управление доступом к админ-панели сайта</div>
+        </div>
+      </div>
+
+      {# Loading state #}
+      <div class="loading-state" id="loading-state" style="padding:80px 20px;">
+        <p>⏳ Загрузка данных…</p>
+      </div>
+
+      <div class="two-col" id="main-content" style="display:none;">
+
+        {# ── Users Card ─────────────────────────────────────────── #}
+        <div class="card">
+          <div class="card-header">
+            <h3>👤 Пользователи</h3>
+            <button class="btn btn-primary btn-sm" id="btn-add-user" onclick="openCreateUserModal()">
+              + Добавить
+            </button>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div id="empty-users" class="empty-state" style="display:none;">
+              <div class="icon">👤</div>
+              <h3>Нет пользователей</h3>
+              <p>Создайте первого пользователя для доступа к админ-панели.</p>
+            </div>
+            <table class="data-table" id="users-table" style="display:none;">
+              <thead>
+                <tr>
+                  <th>Пользователь</th>
+                  <th>Роль</th>
+                  <th>Создан</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="users-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        {# ── Roles Card ─────────────────────────────────────────── #}
+        <div class="card">
+          <div class="card-header">
+            <h3>🔑 Роли</h3>
+            <button class="btn btn-primary btn-sm" id="btn-add-role" onclick="openCreateRoleModal()">
+              + Добавить
+            </button>
+          </div>
+          <div class="card-body">
+            <div id="empty-roles" class="empty-state" style="display:none;">
+              <div class="icon">🔑</div>
+              <h3>Нет ролей</h3>
+              <p>Создайте первую роль для управления доступом.</p>
+            </div>
+            <div class="roles-grid" id="roles-list"></div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  {# ═══════════════════════════════════════════════════════════════ #}
+  {# ── Create User Modal ───────────────────────────────────────── #}
+  {# ═══════════════════════════════════════════════════════════════ #}
+  <div class="modal-overlay" id="user-form-modal">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3 id="user-modal-title">Добавить пользователя</h3>
+        <button class="modal-close" onclick="closeModal('user-form-modal')">✕</button>
+      </div>
+      <form id="user-form" onsubmit="submitUser(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="user-username">
+              Имя пользователя <span class="required">*</span>
+            </label>
+            <input class="form-input" type="text" id="user-username"
+                   placeholder="admin, editor…" autocomplete="off" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="user-password">
+              Пароль <span class="required">*</span>
+            </label>
+            <input class="form-input" type="password" id="user-password"
+                   placeholder="Минимум 4 символа" autocomplete="new-password" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="user-role">
+              Роль <span class="required">*</span>
+            </label>
+            <select class="form-select" id="user-role" required>
+              <option value="">— Выберите роль —</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('user-form-modal')">Отмена</button>
+          <button type="submit" class="btn btn-primary" id="user-submit-btn">Создать</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# ═══════════════════════════════════════════════════════════════ #}
+  {# ── Create Role Modal ───────────────────────────────────────── #}
+  {# ═══════════════════════════════════════════════════════════════ #}
+  <div class="modal-overlay" id="role-form-modal">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>Добавить роль</h3>
+        <button class="modal-close" onclick="closeModal('role-form-modal')">✕</button>
+      </div>
+      <form id="role-form" onsubmit="submitRole(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="role-name">
+              Название роли <span class="required">*</span>
+            </label>
+            <input class="form-input" type="text" id="role-name"
+                   placeholder="admin, editor, viewer…" autocomplete="off" required>
+            <div class="form-hint">Латинские буквы, без пробелов.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('role-form-modal')">Отмена</button>
+          <button type="submit" class="btn btn-primary" id="role-submit-btn">Создать</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# ═══════════════════════════════════════════════════════════════ #}
+  {# ── Delete Confirmation Modal ───────────────────────────────── #}
+  {# ═══════════════════════════════════════════════════════════════ #}
+  <div class="modal-overlay" id="delete-modal">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3 id="delete-title">Подтверждение удаления</h3>
+        <button class="modal-close" onclick="closeModal('delete-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="confirm-icon">🗑️</div>
+        <div class="confirm-text">
+          <p id="delete-text">Вы уверены, что хотите удалить?</p>
+          <p style="font-size:13px;color:var(--text-secondary);margin-top:8px;">
+            Это действие нельзя отменить.
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('delete-modal')">Отмена</button>
+        <button class="btn btn-danger" id="delete-confirm-btn" onclick="executeDelete()">Удалить</button>
+      </div>
+    </div>
+  </div>
+
+  {# ── Toast Container ─────────────────────────────────────────── #}
+  <div class="toast-container" id="toast-container"></div>
+
+  <script>
+    /* ═══════════════════════════════════════════════════════════════════════
+       Admin Roles & Users — JavaScript
+       ═══════════════════════════════════════════════════════════════════════ */
+
+    let deleteTarget = null;  // { type: 'user'|'role', id: number, name: string }
+
+    /* ── Modal helpers ─────────────────────────────────────────────────── */
+    function openModal(id) {
+      document.getElementById(id).classList.add('active');
+    }
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    /* ── Toast ─────────────────────────────────────────────────────────── */
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast toast-' + type;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-8px)';
+        toast.style.transition = 'all 0.2s ease';
+        setTimeout(() => toast.remove(), 200);
+      }, 3000);
+    }
+
+    /* ── Form helpers ──────────────────────────────────────────────────── */
+    function getVal(id) { return document.getElementById(id).value.trim(); }
+    function setVal(id, v) { document.getElementById(id).value = v; }
+
+    /* ── Load data ─────────────────────────────────────────────────────── */
+    async function loadData() {
+      try {
+        const [usersRes, rolesRes] = await Promise.all([
+          fetch('/api/users'),
+          fetch('/api/roles'),
+        ]);
+        if (!usersRes.ok || !rolesRes.ok) {
+          throw new Error('Ошибка загрузки данных');
+        }
+        const users = await usersRes.json();
+        const roles = await rolesRes.json();
+        renderUsers(users, roles);
+        renderRoles(roles, users);
+        document.getElementById('loading-state').style.display = 'none';
+        document.getElementById('main-content').style.display = 'grid';
+      } catch (err) {
+        document.getElementById('loading-state').innerHTML =
+          '<p>❌ ' + err.message + '</p>';
+      }
+    }
+
+    /* ── Render users ──────────────────────────────────────────────────── */
+    function renderUsers(users, roles) {
+      const tbody = document.getElementById('users-tbody');
+      const empty = document.getElementById('empty-users');
+      const table = document.getElementById('users-table');
+
+      if (users.length === 0) {
+        table.style.display = 'none';
+        empty.style.display = 'block';
+        return;
+      }
+      table.style.display = '';
+      empty.style.display = 'none';
+
+      tbody.innerHTML = users.map(u => {
+        const initial = u.username.charAt(0).toUpperCase();
+        const date = new Date(u.created_at).toLocaleDateString('ru-RU', {
+          day: 'numeric', month: 'short', year: 'numeric'
+        });
+        const roleBadgeClass = 'role-badge ' + (u.role_name || '').toLowerCase();
+        return '<tr>' +
+          '<td><div class="username-cell"><div class="avatar">' + initial + '</div>' +
+          escapeHtml(u.username) + '</div></td>' +
+          '<td><span class="' + roleBadgeClass + '">' + escapeHtml(u.role_name || '—') + '</span></td>' +
+          '<td class="date-cell">' + date + '</td>' +
+          '<td class="actions-cell">' +
+          '<button class="btn-icon danger" onclick="confirmDelete(\'user\',' + u.id + ',\'' + escapeJs(u.username) + '\')" title="Удалить">✕</button>' +
+          '</td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    /* ── Render roles ──────────────────────────────────────────────────── */
+    function renderRoles(roles, users) {
+      const list = document.getElementById('roles-list');
+      const empty = document.getElementById('empty-roles');
+
+      if (roles.length === 0) {
+        list.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+      empty.style.display = 'none';
+
+      list.innerHTML = roles.map(r => {
+        const count = users ? users.filter(u => u.role_id === r.id).length : 0;
+        return '<div class="role-chip">' +
+          '<span class="role-name">' + escapeHtml(r.name) + '</span>' +
+          '<span class="role-count">' + count + ' пользователей</span>' +
+          '<button class="remove-role" onclick="confirmDelete(\'role\',' + r.id + ',\'' + escapeJs(r.name) + '\')" title="Удалить роль">✕</button>' +
+          '</div>';
+      }).join('');
+    }
+
+    /* ── Create User Modal ─────────────────────────────────────────────── */
+    async function openCreateUserModal() {
+      // Load roles into the select
+      try {
+        const res = await fetch('/api/roles');
+        const roles = await res.json();
+        const select = document.getElementById('user-role');
+        select.innerHTML = '<option value="">— Выберите роль —</option>' +
+          roles.map(r => '<option value="' + r.id + '">' + escapeHtml(r.name) + '</option>').join('');
+      } catch (e) {
+        showToast('Не удалось загрузить роли', 'error');
+        return;
+      }
+      setVal('user-username', '');
+      setVal('user-password', '');
+      setVal('user-role', '');
+      document.getElementById('user-submit-btn').textContent = 'Создать';
+      openModal('user-form-modal');
+    }
+
+    async function submitUser(e) {
+      e.preventDefault();
+      const btn = document.getElementById('user-submit-btn');
+      btn.disabled = true;
+      btn.textContent = '⏳';
+      try {
+        const res = await fetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: getVal('user-username'),
+            password: getVal('user-password'),
+            role_id: parseInt(getVal('user-role')),
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Ошибка создания пользователя');
+        }
+        showToast('✅ Пользователь создан');
+        closeModal('user-form-modal');
+        loadData();
+      } catch (err) {
+        showToast('❌ ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Создать';
+      }
+    }
+
+    /* ── Create Role Modal ─────────────────────────────────────────────── */
+    function openCreateRoleModal() {
+      setVal('role-name', '');
+      document.getElementById('role-submit-btn').textContent = 'Создать';
+      openModal('role-form-modal');
+    }
+
+    async function submitRole(e) {
+      e.preventDefault();
+      const btn = document.getElementById('role-submit-btn');
+      btn.disabled = true;
+      btn.textContent = '⏳';
+      try {
+        const res = await fetch('/api/roles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: getVal('role-name') }),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Ошибка создания роли');
+        }
+        showToast('✅ Роль создана');
+        closeModal('role-form-modal');
+        loadData();
+      } catch (err) {
+        showToast('❌ ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Создать';
+      }
+    }
+
+    /* ── Delete ────────────────────────────────────────────────────────── */
+    function confirmDelete(type, id, name) {
+      deleteTarget = { type, id, name };
+      const title = type === 'user' ? 'Удаление пользователя' : 'Удаление роли';
+      const text = type === 'user'
+        ? 'Вы уверены, что хотите удалить пользователя <strong>' + escapeHtml(name) + '</strong>?'
+        : 'Вы уверены, что хотите удалить роль <strong>' + escapeHtml(name) + '</strong>? ' +
+          'Все пользователи с этой ролью также будут удалены.';
+      document.getElementById('delete-title').textContent = title;
+      document.getElementById('delete-text').innerHTML = text;
+      openModal('delete-modal');
+    }
+
+    async function executeDelete() {
+      if (!deleteTarget) return;
+      const btn = document.getElementById('delete-confirm-btn');
+      btn.disabled = true;
+      btn.textContent = '⏳';
+      try {
+        const endpoint = deleteTarget.type === 'user' ? '/api/users/' : '/api/roles/';
+        const res = await fetch(endpoint + deleteTarget.id, { method: 'DELETE' });
+        if (!res.ok && res.status !== 204) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || 'Ошибка удаления');
+        }
+        showToast('🗑️ ' + deleteTarget.name + ' удалён');
+        closeModal('delete-modal');
+        deleteTarget = null;
+        loadData();
+      } catch (err) {
+        showToast('❌ ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Удалить';
+      }
+    }
+
+    /* ── Utilities ─────────────────────────────────────────────────────── */
+    function escapeHtml(s) {
+      if (!s) return '';
+      var d = document.createElement('div');
+      d.appendChild(document.createTextNode(s));
+      return d.innerHTML;
+    }
+    function escapeJs(s) {
+      if (!s) return '';
+      return s.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
+    /* ── Init ──────────────────────────────────────────────────────────── */
+    loadData();
+  </script>
+</body>
+</html>
