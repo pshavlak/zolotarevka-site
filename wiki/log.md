@@ -14,10 +14,23 @@
 - **Тесты:** 61 тест (33 проходят, 8 известных багов, 20 ошибок инфраструктуры async fixtures)
 
 ## 2026-07-05
+
 - **Деплой:** выполнено полное развёртывание на сервер.
 - **Код:** репозиторий склонирован, venv пересоздан, зависимости установлены.
 - **Миграция:** плоская структура (`app.py`) → пакетная (`app/main.py`).
 - **Верификация:** все эндпоинты (/, /admin, /admin/menu, /admin/, /static/*) возвращают 200.
+
+### Деплой 2 (вечер)
+- **git pull:** стянуто 25 файлов новых фич (auth, pages, admin tools, seed_db).
+- **seed_db:** создано 8 пунктов меню и 8 страниц.
+- **Зависимости:** добавлены `itsdangerous` и `python-multipart` (требуются новой аутентификацией и формами).
+- **Сервис:** systemd перезапущен (uvicorn). После перезапуска обнаружены и устранены `ModuleNotFoundError`.
+- **Верификация:**
+  - `GET /` → 200
+  - `GET /admin/` → 302 → `/admin/login?next=/admin`
+  - `POST /admin/login` (admin:admin123) → 302 → `/admin/menu`
+  - `GET /api/menu/items` (авторизован) → 8 пунктов меню
+  - `GET /school`, `GET /news` → 200
 - **Security-аудит (T11-T13):** просканированы репозитории и сервер. Найдено: 1 CRITICAL (auth bypass на API), 2 HIGH, 5 MEDIUM, 3 LOW. Отчёты сохранены.
 - **Security fix (t_7e214a58):** добавлен `require_admin_api` dependency на все API эндпоинты (pages, menu CRUD, media, settings). Публичные эндпоинты (/api/menu, POST /api/suggest) оставлены открытыми.
 - **Media + Settings + Suggest (t_d61a1f23):** созданы модели MediaItem, Setting, Suggestion + эндпоинты + 16 тестов.
