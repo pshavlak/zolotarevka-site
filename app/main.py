@@ -117,12 +117,35 @@ def web_page(slug: str, request: Request):
         return JSONResponse({"error": "Not found"}, status_code=404)
 
     slug = slug.rstrip("/").split("/")[-1]
+
+    # Try to load page content from database
+    from app.database import SessionLocal
+    from app.models import Page as PageModel
+
+    db = SessionLocal()
+    try:
+        page = db.query(PageModel).filter(PageModel.slug == slug, PageModel.is_published == True).first()
+    finally:
+        db.close()
+
+    if page:
+        return templates.TemplateResponse(
+            request=request,
+            name="page.html",
+            context={
+                "page_title": page.title,
+                "slug": slug,
+                "page_content": page.content,
+            },
+        )
+
     return templates.TemplateResponse(
         request=request,
         name="page.html",
         context={
             "page_title": slug.capitalize(),
             "slug": slug,
+            "page_content": "",
         },
     )
 

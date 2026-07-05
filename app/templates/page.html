@@ -9,7 +9,11 @@
 
 <div class="page-layout container">
     <div class="page-layout__content page-layout__content--full">
-        <p>Содержимое страницы «{{ slug }}» будет добавлено.</p>
+        {% if page_content %}
+            {{ page_content|safe }}
+        {% else %}
+            <p>Содержимое страницы «{{ slug }}» будет добавлено.</p>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
