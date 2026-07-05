@@ -11,13 +11,11 @@ class RoleResponse(BaseModel):
 
     id: int
     name: str
-    description: str
     created_at: datetime
 
 
 class RoleCreate(BaseModel):
     name: str
-    description: str = ""
 
 
 class UserResponse(BaseModel):
