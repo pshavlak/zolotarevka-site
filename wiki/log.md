@@ -13,6 +13,12 @@
 - **Схемы Pydantic:** MenuItemBase, MenuItemCreate, MenuItemUpdate, MenuItemOut (с children), ReorderRequest
 - **Тесты:** 61 тест (33 проходят, 8 известных багов, 20 ошибок инфраструктуры async fixtures)
 
+## 2026-07-05
+- **Деплой:** код опубликован в репозитории (GitHub, main). VPS nginx перезагружен.
+- **LXC недоступен:** FastAPI сервер на LXC `192.168.1.64` не отвечает (CGNAT/домашняя сеть).
+  Развёртывание на LXC — после восстановления reverse SSH tunnel или прямого доступа.
+- **Репозиторий:** `https://github.com/pshavlak/zolotarevka-site`
+
 ## 2026-06-25 (вечер)
 - **entities/fastapi-architecture.md**: добавлен раздел «Известные баги и исправления»
 - **app.py**: исправлен вызов `seed_db()` в `lifespan`, создание `static/uploads/`
