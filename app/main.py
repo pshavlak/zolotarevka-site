@@ -99,6 +99,24 @@ app.include_router(public.router)
 app.include_router(admin_tools.router)
 
 
+# ── Admin pages (sidebar targets) ─────────────────────────────────────────
+# Simple placeholder pages for admin sections that don't have full UIs yet.
+
+
+@app.get("/admin/media", response_class=HTMLResponse, include_in_schema=False)
+@app.get("/admin/content", response_class=HTMLResponse, include_in_schema=False)
+@app.get("/admin/settings-page", response_class=HTMLResponse, include_in_schema=False)
+@app.get("/admin/roles-page", response_class=HTMLResponse, include_in_schema=False)
+def admin_placeholder(request: Request):
+    if not is_authenticated(request):
+        return RedirectResponse(url=f"/admin/login?next={request.url.path}", status_code=302)
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/menu.html",
+        context={"page_title": "Админ-панель"},
+    )
+
+
 # ── Public page routes (Jinja2) ──────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 def web_index(request: Request):

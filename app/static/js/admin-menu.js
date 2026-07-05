@@ -40,6 +40,7 @@ async function api(method, path, body) {
   const opts = {
     method,
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    credentials: 'include',
   };
   if (body !== undefined) opts.body = JSON.stringify(body);
   const res = await fetch(`${API_BASE}${path}`, opts);
